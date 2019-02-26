@@ -1,0 +1,35 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: gitlab-runner
+  template:
+    metadata:
+      labels:
+        name: gitlab-runner
+    spec:
+      hostAliases:
+        - ip: 1.1.1.1
+          hostnames:
+            - git.my.com
+      containers:
+        - args:
+            - run
+          image: gitlab/gitlab-runner:latest
+          imagePullPolicy: Always
+          name: gitlab-runner
+          volumeMounts:
+            - mountPath: /etc/ssl/certs
+              name: cacerts
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: cacerts
+          secret:
+            secretName: gitlab-cert
+            defaultMode: 256
