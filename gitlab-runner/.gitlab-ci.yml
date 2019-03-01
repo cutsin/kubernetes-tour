@@ -1,0 +1,37 @@
+image: docker/compose:1.23.2
+variables:
+  GIT_SUBMODULE_STRATEGY: recursive
+  MOUNT_NAME: $CI_PROJECT_DIR
+cache:
+ key: ${CI_COMMIT_REF_NAME}
+ paths:
+    - node_modules
+# Only for kubernetes executor
+before_script:
+  - export CONTAINER_ID=$(docker ps -q -f name=k8s_build_runner) # name maybe some differences
+  - echo $CONTAINER_ID
+  - MOUNT_NAME=$(docker inspect $CONTAINER_ID -f "{{ range .Mounts }}{{ if eq .Destination \"/${CI_PROJECT_NAMESPACE}\" }}{{ .Source }}{{end}}{{end}}")/$CI_PROJECT_NAME
+  - echo $MOUNT_NAME
+
+build:
+  stage: build
+  only:
+    - tags
+    - triggers
+    - schedules
+  script:
+    - docker-compose build --pull --force-rm build
+    - docker-compose run -v $MOUNT_NAME:/code --rm build yarn build
+  artifacts:
+    expire_in: 1h
+    paths:
+      - dist
+
+deploy:
+  stage: deploy
+  only:
+    - tags
+    - triggers
+    - schedules
+  script:
+    - sh ./Images/push.sh
