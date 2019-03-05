@@ -1,24 +1,29 @@
 image: docker/compose:1.23.2
 variables:
-  GIT_SUBMODULE_STRATEGY: recursive
   MOUNT_NAME: $CI_PROJECT_DIR
+  # Still declare here due to its bugly although we already specified it in runner
+  GIT_SSL_NO_VERIFY: "true"
+  GIT_SUBMODULE_STRATEGY: recursive
 cache:
  key: ${CI_COMMIT_REF_NAME}
  paths:
     - node_modules
-# Only for kubernetes executor
 before_script:
-  - export CONTAINER_ID=$(docker ps -q -f name=k8s_build_runner) # name maybe some differences
-  - echo $CONTAINER_ID
+  # Gitlab doesnt support --remote as env
+  - apk add git
+  - git submodule update --init --force --recursive --remote
+  # Only for kubernetes executor
+  - export CONTAINER_ID=$(docker ps -q -f name=^/k8s_build_runner.*$CI_PROJECT_ID)
   - MOUNT_NAME=$(docker inspect $CONTAINER_ID -f "{{ range .Mounts }}{{ if eq .Destination \"/${CI_PROJECT_NAMESPACE}\" }}{{ .Source }}{{end}}{{end}}")/$CI_PROJECT_NAME
-  - echo $MOUNT_NAME
+
+stages:
+  - build
+  - test
+  - push
+  - deploy
 
 build:
   stage: build
-  only:
-    - tags
-    - triggers
-    - schedules
   script:
     - docker-compose build --pull --force-rm build
     - docker-compose run -v $MOUNT_NAME:/code --rm build yarn build
@@ -26,12 +31,27 @@ build:
     expire_in: 1h
     paths:
       - dist
-
-deploy:
-  stage: deploy
   only:
     - tags
     - triggers
     - schedules
+
+push:
+  stage: push
   script:
     - sh ./Images/push.sh
+    - echo $TAG $tagged
+  only:
+    - tags
+    - triggers
+    - schedules
+
+deploy:
+  stage: deploy
+  script:
+    - sh ./Images/deploy.k8s.sh
+  only:
+    - tags
+    - triggers
+    - schedules
+    - manual
