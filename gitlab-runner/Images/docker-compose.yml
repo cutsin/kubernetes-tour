@@ -1,0 +1,31 @@
+version: '3.4'
+services:
+  # Vue CLI 3
+  vue-cli-3:
+    env_file: .env
+    build:
+      context: .
+      target: vue-cli-3
+      args:
+        DOCKER_REPO: $DOCKER_REPO
+    image: ${DOCKER_REPO}vue-cli-3
+
+  # Vue CLI 3 Development
+  vue-cli-3-dev:
+    env_file: .env
+    build:
+      context: .
+      target: vue-cli-3-dev
+      args:
+        DOCKER_REPO: $DOCKER_REPO
+    image: ${DOCKER_REPO}vue-cli-3-dev
+
+  # Static as Service
+  static-service:
+    env_file: .env
+    build:
+      context: .
+      target: static-service
+      args:
+        DOCKER_REPO: $DOCKER_REPO
+    image: ${DOCKER_REPO}static-service
