@@ -101,6 +101,7 @@ spec:
         app: gitlab-runner
     spec:
       serviceAccount: gitlab-runner
+      hostNetwork: true
       hostAliases:
       - ip: 123.123.123.123 # Edit if necessary
         hostnames:
@@ -111,15 +112,10 @@ spec:
           command:
             - sh
             - -c
-            - "/entrypoint unregister --all-runners; /entrypoint register"
+            - "/entrypoint unregister --all-runners; RUNNER_NAME=k8s-runner-blabla REGISTRATION_TOKEN=token_blabla /entrypoint register --tag-list k8s-runner-k8s-runner-blabla"
           envFrom:
             - configMapRef:
                 name: gitlab-runner
-          env:
-            - name: RUNNER_NAME
-              value: ...  # Edit
-            - name: REGISTRATION_TOKEN
-              value: ...  # Edit
           volumeMounts:
             - mountPath: /etc/gitlab-runner
               name: config
