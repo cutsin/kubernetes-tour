@@ -70,8 +70,10 @@ metadata:
   namespace: gitlab
   name: gitlab-runner
 data:
-  GIT_SUBMODULE_STRATEGY: recursive
+  # Details from `gitlab-runner register --help`
+  GIT_STRATEGY: fetch
   GIT_SSL_NO_VERIFY: "true"
+  GIT_SUBMODULE_STRATEGY: recursive
   REGISTER_NON_INTERACTIVE: "true"
   CI_SERVER_URL: https://git.yourdomain.com/ # Edit
   RUNNER_PRE_CLONE_SCRIPT: echo 123.123.123.123 git.yourdomain.com >> /etc/hosts && git config --global http.sslVerify false # Edit if necessary
@@ -128,17 +130,7 @@ spec:
           # Append hostpath mount to configuration because there is no env variable for it
           # https://gitlab.com/gitlab-org/gitlab-ci-multi-runner/issues/2578
           args:
-            - |
-              cat <<EOF >> /etc/gitlab-runner/config.toml
-                [[runners.kubernetes.volumes.host_path]]
-                name = "docker-sock"
-                mount_path = "/var/run/docker.sock"
-                host_path = "/var/run/docker.sock"
-                [[runners.kubernetes.volumes.host_path]]
-                name = "kubectl"
-                mount_path = "/usr/bin/kubectl"
-                host_path = "/usr/bin/kubectl"
-              EOF
+            - sed -i -e ' /^\s*\[runners.kubernetes.volumes\]/a \      [[runners.kubernetes.volumes.host_path]]\n        name = "docker-sock"\n        mount_path = "/var/run/docker.sock"\n        host_path = "/var/run/docker.sock"\n      [[runners.kubernetes.volumes.host_path]]\n        name = "kubectl"\n        mount_path = "/usr/bin/kubectl"\n        host_path = "/usr/bin/kubectl"' /etc/gitlab-runner/config.toml
           volumeMounts:
             - mountPath: /etc/gitlab-runner
               name: config
